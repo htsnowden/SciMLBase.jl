@@ -3608,6 +3608,12 @@ function DynamicalSDEFunction{iip}(f1, f2, g; kwargs...) where {iip}
 end
 DynamicalSDEFunction(f::DynamicalSDEFunction; kwargs...) = f
 
+struct DynamicalNoiseFunction
+    f::Function
+end
+
+numargs(x::DynamicalNoiseFunction) = numargs(x.f)
+
 function RODEFunction{iip, specialize}(f;
         mass_matrix = __has_mass_matrix(f) ? f.mass_matrix :
                       I,
