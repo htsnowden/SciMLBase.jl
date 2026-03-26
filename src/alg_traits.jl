@@ -32,6 +32,23 @@ have this as true
 forwarddiffs_model_time(alg::AbstractSciMLAlgorithm) = false
 
 """
+    forwarddiff_chunksize(alg::AbstractSciMLAlgorithm)
+
+Trait declaration for the ForwardDiff chunk size used by the algorithm
+when calling the model function with ForwardDiff.Dual numbers.
+
+Returns a `Val{N}()`: `Val(0)` means unspecified (the framework will choose
+a default, typically 1 for FunctionWrapper compatibility). `Val(N)` for any
+positive integer `N` means the algorithm will use chunk size `N`.
+
+This is used by DiffEqBase to compile FunctionWrapper variants with matching
+Dual number chunk sizes, avoiding `NoFunctionWrapperFoundError`.
+
+Defaults to `Val(0)` (unspecified).
+"""
+forwarddiff_chunksize(alg::AbstractSciMLAlgorithm) = Val(0)
+
+"""
     allows_arbitrary_number_types(alg::AbstractDEAlgorithm)
 
 Trait declaration for whether an algorithm is compatible with
@@ -85,9 +102,8 @@ has_lazy_interpolation(alg::AbstractDEAlgorithm) = false
 """
     allowsbounds(opt)
 
-Trait declaration for whether an optimizer allows for
-box constraints passed with `lb` and `ub` in
-`OptimizationProblem`.
+Trait declaration for whether an solver allows for
+box constraints passed with `lb` and `ub` in problems.
 
 Defaults to false.
 """
@@ -96,9 +112,9 @@ allowsbounds(opt) = false
 """
     requiresbounds(opt)
 
-Trait declaration for whether an optimizer requires
+Trait declaration for whether an solver requires
 box constraints passed with `lb` and `ub` in
-`OptimizationProblem`.
+problems.
 
 Defaults to false.
 """
@@ -299,8 +315,33 @@ allows_late_binding_tstops(alg::AbstractODEAlgorithm) = false
 """
     $(TYPEDSIGNATURES)
 
-Trait declaration for whether the optimization algorithm supports the `init` interface. 
+Trait declaration for whether the optimization algorithm supports the `init` interface.
 
 Deprecated as this is not an optimization-specific idea and should use the traits for general caching.
 """
 supports_opt_cache_interface(alg) = false
+
+"""
+    $(TYPEDSIGNATURES)
+
+Trait for specifying whether the passed algorithm supports `init`. Any `init`ed object can `solve!`.
+"""
+has_init(a) = false
+
+"""
+    $(TYPEDSIGNATURES)
+
+Trait for specifying whether the passed algorithm supports `step!`, specifying a more direct control over the internal solver process.
+See https://docs.sciml.ai/SciMLBase/stable/interfaces/Init_Solve/#init-and-the-Iterator-Interface for more details.
+"""
+has_step(a) = false
+
+"""
+    supports_solve_rng(prob, alg) -> Bool
+
+Whether `solve(prob, alg; rng=...)` is supported for this problem/algorithm path.
+
+Pass `alg = nothing` to query support for the default solver-selection path
+(i.e., `solve(prob; rng=...)`).
+"""
+supports_solve_rng(::AbstractSciMLProblem, alg) = false

@@ -8,22 +8,25 @@ const is_APPVEYOR = (Sys.iswindows() && haskey(ENV, "APPVEYOR"))
 function activate_downstream_env()
     Pkg.activate("downstream")
     Pkg.develop(PackageSpec(path = dirname(@__DIR__)))
-    Pkg.instantiate()
+    return Pkg.instantiate()
 end
 
 function activate_python_env()
     Pkg.activate("python")
     Pkg.develop(PackageSpec(path = dirname(@__DIR__)))
-    Pkg.instantiate()
+    return Pkg.instantiate()
 end
 
 @time begin
-    if GROUP == "QA" || GROUP == "All"
+    if GROUP == "QA"
         @time @safetestset "Aqua" begin
             include("aqua.jl")
         end
     end
     if GROUP == "Core" || GROUP == "All"
+        @time @safetestset "Adapt structure" begin
+            include("adapt.jl")
+        end
         @time @safetestset "Display" begin
             include("display.jl")
         end
@@ -48,6 +51,9 @@ end
         @time @safetestset "Performance warnings" begin
             include("performance_warnings.jl")
         end
+        @time @safetestset "Error hints" begin
+            include("error_hint_tests.jl")
+        end
         @time @safetestset "Problem building tests" begin
             include("problem_building_test.jl")
         end
@@ -60,7 +66,7 @@ end
     end
 
     if !is_APPVEYOR &&
-       (GROUP == "Core" || GROUP == "All" || GROUP == "SymbolicIndexingInterface")
+            (GROUP == "Core" || GROUP == "All" || GROUP == "SymbolicIndexingInterface")
         @time @safetestset "Remake" begin
             include("remake_tests.jl")
         end

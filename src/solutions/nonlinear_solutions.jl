@@ -1,15 +1,14 @@
-
 """
 $(TYPEDEF)
 Statistics from the nonlinear equation solver about the solution process.
 
 ## Fields
 
-  - nf: Number of function evaluations.
-  - njacs: Number of Jacobians created during the solve.
-  - nfactors: Number of factorzations of the jacobian required for the solve.
-  - nsolve: Number of linear solves `W\\b` required for the solve.
-  - nsteps: Total number of iterations for the nonlinear solver.
+  - `nf`: Number of function evaluations.
+  - `njacs`: Number of Jacobians created during the solve.
+  - `nfactors`: Number of factorzations of the jacobian required for the solve.
+  - `nsolve`: Number of linear solves `W\\b` required for the solve.
+  - `nsteps`: Total number of iterations for the nonlinear solver.
 """
 mutable struct NLStats
     nf::Int
@@ -25,12 +24,14 @@ function Base.show(io::IO, ::MIME"text/plain", s::NLStats)
     @printf io "%-50s %-d\n" "Number of Jacobians created:" s.njacs
     @printf io "%-50s %-d\n" "Number of factorizations:" s.nfactors
     @printf io "%-50s %-d\n" "Number of linear solves:" s.nsolve
-    @printf io "%-50s %-d" "Number of nonlinear solver iterations:" s.nsteps
+    return @printf io "%-50s %-d" "Number of nonlinear solver iterations:" s.nsteps
 end
 
 function Base.merge(s1::NLStats, s2::NLStats)
-    NLStats(s1.nf + s2.nf, s1.njacs + s2.njacs, s1.nfactors + s2.nfactors,
-        s1.nsolve + s2.nsolve, s1.nsteps + s2.nsteps)
+    return NLStats(
+        s1.nf + s2.nf, s1.njacs + s2.njacs, s1.nfactors + s2.nfactors,
+        s1.nsolve + s2.nsolve, s1.nsteps + s2.nsteps
+    )
 end
 
 """
@@ -55,7 +56,7 @@ or the steady state solution to a differential equation defined by a SteadyState
   - `stats`: statistics of the solver, such as the number of function evaluations required.
 """
 struct NonlinearSolution{T, N, uType, R, P, A, O, uType2, S, Tr} <:
-       AbstractNonlinearSolution{T, N}
+    AbstractNonlinearSolution{T, N}
     u::uType
     resid::R
     prob::P
@@ -68,11 +69,25 @@ struct NonlinearSolution{T, N, uType, R, P, A, O, uType2, S, Tr} <:
     trace::Tr
 end
 
+function NonlinearSolution(u, resid, prob, alg, retcode, original, left, right, stats, trace)
+    T = eltype(eltype(u))
+    N = ndims(u)
+
+    return NonlinearSolution{
+        T, N, typeof(u), typeof(resid), typeof(prob), typeof(alg),
+        typeof(original), typeof(left), typeof(stats), typeof(trace),
+    }(
+        u, resid, prob, alg,
+        retcode, original, left, right, stats, trace
+    )
+end
+
 const SteadyStateSolution = NonlinearSolution
 
 get_p(p::AbstractNonlinearSolution) = p.prob.p
 
-function build_solution(prob::Union{AbstractNonlinearProblem, SCCNonlinearProblem},
+function build_solution(
+        prob::Union{AbstractNonlinearProblem, SCCNonlinearProblem},
         alg, u, resid; calculate_error = true,
         retcode = ReturnCode.Default,
         original = nothing,
@@ -80,24 +95,27 @@ function build_solution(prob::Union{AbstractNonlinearProblem, SCCNonlinearProble
         right = nothing,
         stats = nothing,
         trace = nothing,
-        kwargs...)
-    T = eltype(eltype(u))
-    N = ndims(u)
+        kwargs...
+    )
+    return NonlinearSolution(
+        u, resid, prob, alg, retcode,
+        original, left, right, stats, trace
+    )
+end
 
-    NonlinearSolution{T, N, typeof(u), typeof(resid), typeof(prob), typeof(alg),
-        typeof(original), typeof(left), typeof(stats), typeof(trace)}(u, resid, prob, alg,
-        retcode, original, left, right, stats, trace)
+function strip_solution(sol::NonlinearSolution)
+    @reset sol.prob = (; p = nothing)
+    @reset sol.alg = nothing
+    @reset sol.original = nothing
+    return sol
 end
 
 function sensitivity_solution(sol::AbstractNonlinearSolution, u)
-    T = eltype(eltype(u))
-    N = ndims(u)
-
     # Some of the subtypes might not have a trace field
     trace = hasfield(typeof(sol), :trace) ? sol.trace : nothing
 
-    NonlinearSolution{T, N, typeof(u), typeof(sol.resid), typeof(sol.prob),
-        typeof(sol.alg), typeof(sol.original), typeof(sol.left),
-        typeof(sol.stats), typeof(trace)}(u, sol.resid, sol.prob, sol.alg, sol.retcode,
-        sol.original, sol.left, sol.right, sol.stats, trace)
+    return NonlinearSolution(
+        u, sol.resid, sol.prob, sol.alg, sol.retcode,
+        sol.original, sol.left, sol.right, sol.stats, trace
+    )
 end

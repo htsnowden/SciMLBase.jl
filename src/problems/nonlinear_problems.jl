@@ -54,7 +54,7 @@ every solve call.
 * `kwargs`: The keyword arguments passed on to the solvers.
 """
 struct IntervalNonlinearProblem{isinplace, tType, P, F, K, PT} <:
-       AbstractIntervalNonlinearProblem{nothing, isinplace}
+    AbstractIntervalNonlinearProblem{nothing, isinplace}
     f::F
     tspan::tType
     p::P
@@ -67,14 +67,19 @@ struct IntervalNonlinearProblem{isinplace, tType, P, F, K, PT} <:
             tspan,
             p = NullParameters(),
             problem_type = StandardNonlinearProblem();
-            kwargs...) where {iip}
+            kwargs...
+        ) where {iip}
         warn_paramtype(p)
-        new{iip, typeof(tspan), typeof(p), typeof(f),
-            typeof(kwargs), typeof(problem_type)}(f,
+        new{
+            iip, typeof(tspan), typeof(p), typeof(f),
+            typeof(kwargs), typeof(problem_type),
+        }(
+            f,
             tspan,
             p,
             problem_type,
-            kwargs)
+            kwargs
+        )
     end
 
     """
@@ -85,7 +90,7 @@ struct IntervalNonlinearProblem{isinplace, tType, P, F, K, PT} <:
     This is determined automatically, but not inferred.
     """
     function IntervalNonlinearProblem{iip}(f, tspan, p = NullParameters()) where {iip}
-        IntervalNonlinearProblem{iip}(IntervalNonlinearFunction{iip}(f), tspan, p)
+        return IntervalNonlinearProblem{iip}(IntervalNonlinearFunction{iip}(f), tspan, p)
     end
 end
 
@@ -95,13 +100,15 @@ $(SIGNATURES)
 Define a nonlinear problem using an instance of
 [`IntervalNonlinearFunction`](@ref IntervalNonlinearFunction).
 """
-function IntervalNonlinearProblem(f::AbstractIntervalNonlinearFunction, tspan,
-        p = NullParameters(); kwargs...)
-    IntervalNonlinearProblem{isinplace(f)}(f, tspan, p; kwargs...)
+function IntervalNonlinearProblem(
+        f::AbstractIntervalNonlinearFunction, tspan,
+        p = NullParameters(); kwargs...
+    )
+    return IntervalNonlinearProblem{isinplace(f)}(f, tspan, p; kwargs...)
 end
 
 function IntervalNonlinearProblem(f, tspan, p = NullParameters(); kwargs...)
-    IntervalNonlinearProblem(IntervalNonlinearFunction(f), tspan, p; kwargs...)
+    return IntervalNonlinearProblem(IntervalNonlinearFunction(f), tspan, p; kwargs...)
 end
 
 @doc doc"""
@@ -150,29 +157,43 @@ For specifying Jacobians and mass matrices, see the
 * `f`: The function in the problem.
 * `u0`: The initial guess for the root.
 * `p`: The parameters for the problem. Defaults to `NullParameters`.
+* `lb`: Lower bounds for the solution. Defaults to `nothing`.
+* `ub`: Upper bounds for the solution. Defaults to `nothing`.
 * `kwargs`: The keyword arguments passed on to the solvers.
 """
-mutable struct NonlinearProblem{uType, isinplace, P, F, K, PT} <:
-               AbstractNonlinearProblem{uType, isinplace}
+mutable struct NonlinearProblem{uType, isinplace, P, F, K, PT, LB, UB} <:
+    AbstractNonlinearProblem{uType, isinplace}
     f::F
     u0::uType
     p::P
     problem_type::PT
+    lb::LB
+    ub::UB
     kwargs::K
-    @add_kwonly function NonlinearProblem{iip}(f::AbstractNonlinearFunction{iip}, u0,
+    @add_kwonly function NonlinearProblem{iip}(
+            f::AbstractNonlinearFunction{iip}, u0,
             p = NullParameters(),
             problem_type = StandardNonlinearProblem();
-            kwargs...) where {iip}
+            lb = nothing,
+            ub = nothing,
+            kwargs...
+        ) where {iip}
         if haskey(kwargs, :p)
             error("`p` specified as a keyword argument `p = $(kwargs[:p])` to `NonlinearProblem`. This is not supported.")
         end
         warn_paramtype(p)
-        new{typeof(u0), iip, typeof(p), typeof(f),
-            typeof(kwargs), typeof(problem_type)}(f,
+        new{
+            typeof(u0), iip, typeof(p), typeof(f),
+            typeof(kwargs), typeof(problem_type), typeof(lb), typeof(ub),
+        }(
+            f,
             u0,
             p,
             problem_type,
-            kwargs)
+            lb,
+            ub,
+            kwargs
+        )
     end
 
     """
@@ -183,7 +204,7 @@ mutable struct NonlinearProblem{uType, isinplace, P, F, K, PT} <:
     This is determined automatically, but not inferred.
     """
     function NonlinearProblem{iip}(f, u0, p = NullParameters(); kwargs...) where {iip}
-        NonlinearProblem{iip}(NonlinearFunction{iip}(f), u0, p; kwargs...)
+        return NonlinearProblem{iip}(NonlinearFunction{iip}(f), u0, p; kwargs...)
     end
 end
 
@@ -194,20 +215,20 @@ Define a nonlinear problem using an instance of
 [`AbstractNonlinearFunction`](@ref AbstractNonlinearFunction).
 """
 function NonlinearProblem(f::AbstractNonlinearFunction, u0, p = NullParameters(); kwargs...)
-    NonlinearProblem{isinplace(f)}(f, u0, p; kwargs...)
+    return NonlinearProblem{isinplace(f)}(f, u0, p; kwargs...)
 end
 
 function NonlinearProblem(f, u0, p = NullParameters(); kwargs...)
-    NonlinearProblem(NonlinearFunction(f), u0, p; kwargs...)
+    return NonlinearProblem(NonlinearFunction(f), u0, p; kwargs...)
 end
 
 """
 $(SIGNATURES)
 
-Define a NonlinearProblem problem from SteadyStateProblem
+Define a `NonlinearProblem` problem from `SteadyStateProblem`
 """
 function NonlinearProblem(prob::AbstractNonlinearProblem)
-    NonlinearProblem{isinplace(prob)}(prob.f, prob.u0, prob.p)
+    return NonlinearProblem{isinplace(prob)}(prob.f, prob.u0, prob.p)
 end
 
 """
@@ -219,17 +240,17 @@ this is interpreted in the form of the steady state problem, i.e.
 find the ODE's solution at time ``t = \\infty``.
 """
 function NonlinearProblem(f::AbstractODEFunction, u0, p = NullParameters(); kwargs...)
-    NonlinearProblem{isinplace(f)}(f, u0, p; kwargs...)
+    return NonlinearProblem{isinplace(f)}(f, u0, p; kwargs...)
 end
 
 function ConstructionBase.constructorof(::Type{P}) where {P <: NonlinearProblem}
-    function ctor(f, u0, p, pt, kw)
+    return function ctor(f, u0, p, pt, lb, ub, kw)
         if f isa AbstractNonlinearFunction
             iip = isinplace(f)
         else
             iip = isinplace(f, 4)
         end
-        return NonlinearProblem{iip}(f, u0, p, pt; kw...)
+        return NonlinearProblem{iip}(f, u0, p, pt; lb, ub, kw...)
     end
 end
 
@@ -238,20 +259,20 @@ $(SIGNATURES)
 
 Define a nonlinear problem from a standard ODE problem. Note that
 this is interpreted in the form of the steady state problem, i.e.
-find the ODE's solution at time ``t = \\infty``
+find the ODE's solution at time ``t = ∞``
 """
 function NonlinearProblem(prob::AbstractODEProblem)
-    NonlinearProblem{isinplace(prob)}(prob.f, prob.u0, prob.p; prob.kwargs...)
+    return NonlinearProblem{isinplace(prob)}(prob.f, prob.u0, prob.p; prob.kwargs...)
 end
 
 function Base.setproperty!(prob::NonlinearProblem, s::Symbol, v)
     @warn "Mutation of NonlinearProblem detected. SciMLBase v2.0 has made NonlinearProblem temporarily mutable in order to allow for interfacing with EnzymeRules due to a current limitation in the rule system. This change is only intended to be temporary and NonlinearProblem will return to being a struct in a later non-breaking release. Do not rely on this behavior, use with caution."
-    Base.setfield!(prob, s, v)
+    return Base.setfield!(prob, s, v)
 end
 
 function Base.setproperty!(prob::NonlinearProblem, s::Symbol, v, order::Symbol)
     @warn "Mutation of NonlinearProblem detected. SciMLBase v2.0 has made NonlinearProblem temporarily mutable in order to allow for interfacing with EnzymeRules due to a current limitation in the rule system. This change is only intended to be temporary and NonlinearProblem will return to being a struct in a later non-breaking release. Do not rely on this behavior, use with caution."
-    Base.setfield!(prob, s, v, order)
+    return Base.setfield!(prob, s, v, order)
 end
 
 @doc doc"""
@@ -263,7 +284,7 @@ To define a Nonlinear Problem, you simply need to give the function ``f`` which 
 nonlinear system:
 
 ```math
-\underset{x}{\min} \| f(x, p) \|
+\min_x \| f(x, p) \|
 ```
 
 and an initial guess ``u_0`` for the minimization problem. ``f`` should be specified as
@@ -296,21 +317,33 @@ For specifying Jacobians and mass matrices, see the
 * `f`: The function in the problem.
 * `u0`: The initial guess for the solution.
 * `p`: The parameters for the problem. Defaults to `NullParameters`.
+* `lb`: Lower bounds for the solution. Defaults to `nothing`.
+* `ub`: Upper bounds for the solution. Defaults to `nothing`.
 * `kwargs`: The keyword arguments passed on to the solvers.
 """
-struct NonlinearLeastSquaresProblem{uType, isinplace, P, F, K} <:
-       AbstractNonlinearProblem{uType, isinplace}
+struct NonlinearLeastSquaresProblem{uType, isinplace, P, F, K, LB, UB} <:
+    AbstractNonlinearProblem{uType, isinplace}
     f::F
     u0::uType
     p::P
+    lb::LB
+    ub::UB
     kwargs::K
 
     @add_kwonly function NonlinearLeastSquaresProblem{iip}(
             f::AbstractNonlinearFunction{
-                iip}, u0,
-            p = NullParameters(); kwargs...) where {iip}
+                iip,
+            }, u0,
+            p = NullParameters();
+            lb = nothing,
+            ub = nothing,
+            kwargs...
+        ) where {iip}
         warn_paramtype(p)
-        return new{typeof(u0), iip, typeof(p), typeof(f), typeof(kwargs)}(f, u0, p, kwargs)
+        return new{
+            typeof(u0), iip, typeof(p), typeof(f), typeof(kwargs),
+            typeof(lb), typeof(ub),
+        }(f, u0, p, lb, ub, kwargs)
     end
 
     function NonlinearLeastSquaresProblem{iip}(f, u0, p = NullParameters()) where {iip}
@@ -324,8 +357,10 @@ $(SIGNATURES)
 Define a nonlinear least squares problem using an instance of
 [`AbstractNonlinearFunction`](@ref AbstractNonlinearFunction).
 """
-function NonlinearLeastSquaresProblem(f::AbstractNonlinearFunction, u0,
-        p = NullParameters(); kwargs...)
+function NonlinearLeastSquaresProblem(
+        f::AbstractNonlinearFunction, u0,
+        p = NullParameters(); kwargs...
+    )
     return NonlinearLeastSquaresProblem{isinplace(f)}(f, u0, p; kwargs...)
 end
 
@@ -334,13 +369,13 @@ function NonlinearLeastSquaresProblem(f, u0, p = NullParameters(); kwargs...)
 end
 
 function ConstructionBase.constructorof(::Type{P}) where {P <: NonlinearLeastSquaresProblem}
-    function ctor(f, u0, p, kw)
+    return function ctor(f, u0, p, lb, ub, kw)
         if f isa AbstractNonlinearFunction
             iip = isinplace(f)
         else
             iip = isinplace(f, 4)
         end
-        return NonlinearLeastSquaresProblem{iip}(f, u0, p; kw...)
+        return NonlinearLeastSquaresProblem{iip}(f, u0, p; lb, ub, kw...)
     end
 end
 
@@ -362,11 +397,13 @@ form. In this form, the nonlinear problem can be decomposed into a system
 of nonlinear systems. 
 
 ```math
-f_1(u_1,p) = 0
-f_2(u_2,u_1,p) = 0
-f_3(u_3,u_2,u_1,p) = 0
-\vdots
-f_n(u_n,\ldots,u_3,u_2,u_1,p) = 0
+\begin{align*}
+f_1(u_1,p) &= 0 \\
+f_2(u_2,u_1,p) &= 0 \\
+f_3(u_3,u_2,u_1,p) &= 0 \\
+& \vdots \\
+f_n(u_n,\ldots,u_3,u_2,u_1,p) &= 0
+\end{align*}
 ```
 
 Splitting the system in this form can have multiple advantages, including:
@@ -379,20 +416,18 @@ to solve in order solve the system in the optimized split form.
 
 ## Representation
 
-The representation of the SCCNonlinearProblem is via an ordered collection
+The representation of the `SCCNonlinearProblem` is via an ordered collection
 of `NonlinearProblem`s, `probs`, with an attached explicit function for pre-processing
 a cache. This can be interpreted as follows:
 
 ```math
-p_1 = g_1(u,p)
-f_1(u_1,p_1) = 0
-p_2 = g_2(u,p)
-f_2(u_2,u_1,p_2) = 0
-p_3 = g_3(u,p)
-f_3(u_3,u_2,u_1,p_3) = 0
-\vdots
-p_n = g_n(u,p)
-f_n(u_n,\ldots,u_3,u_2,u_1,p_n) = 0
+\begin{align*}
+p_1 &= g_1(u,p) & f_1(u_1,p_1)         &= 0 \\
+p_2 &= g_2(u,p) & f_2(u_2,u_1,p_2)     &= 0 \\
+p_3 &= g_3(u,p) & f_3(u_3,u_2,u_1,p_3) &= 0 \\
+& \vdots \\
+p_n &= g_n(u,p) & f_n(u_n,\ldots,u_3,u_2,u_1,p_n) &= 0 \\
+\end{align*}
 ```
 
 where ``g_i`` is `explicitfuns![i]`. In a computational sense, `explictfuns!`
@@ -400,11 +435,11 @@ is instead a mutating function `explictfuns![i](prob.probs[i],sols)` which
 updates the values of prob.probs[i] using the previous solutions `sols[i-1]`
 and below.
 
-!!! warn
+!!! warning
     For the purposes of differentiation, it's assumed that `explictfuns!` does
     not modify tunable parameters!
 
-!!! warn
+!!! warning
     While `explictfuns![i]` could in theory use `sols[i+1]` in its computation,
     these values will not be updated. It is thus the contract of the interface
     to not use those values except for as caches to be overridden.
@@ -420,14 +455,14 @@ For the following nonlinear problem:
 
 ```julia
 function f(du,u,p)
-	du[1] = cos(u[2]) - u[1]
-	du[2] = sin(u[1] + u[2]) + u[2]
-	du[3] = 2u[4] + u[3] + 1.0
-	du[4] = u[5]^2 + u[4]
-	du[5] = u[3]^2 + u[5]
-	du[6] = u[1] + u[2] + u[3] + u[4] + u[5]    + 2.0u[6] + 2.5u[7] + 1.5u[8]
-	du[7] = u[1] + u[2] + u[3] + 2.0u[4] + u[5] + 4.0u[6] - 1.5u[7] + 1.5u[8]
-	du[8] = u[1] + 2.0u[2] + 3.0u[3] + 5.0u[4] + 6.0u[5] + u[6] - u[7] - u[8]
+    du[1] = cos(u[2]) - u[1]
+    du[2] = sin(u[1] + u[2]) + u[2]
+    du[3] = 2u[4] + u[3] + 1.0
+    du[4] = u[5]^2 + u[4]
+    du[5] = u[3]^2 + u[5]
+    du[6] = u[1] + u[2] + u[3] + u[4] + u[5]    + 2.0u[6] + 2.5u[7] + 1.5u[8]
+    du[7] = u[1] + u[2] + u[3] + 2.0u[4] + u[5] + 4.0u[6] - 1.5u[7] + 1.5u[8]
+    du[8] = u[1] + 2.0u[2] + 3.0u[3] + 5.0u[4] + 6.0u[5] + u[6] - u[7] - u[8]
 end
 prob = NonlinearProblem(f, zeros(8))
 sol = solve(prob)
@@ -439,38 +474,40 @@ The split SCC form is:
 cache = zeros(3)
 
 function f1(du,u,cache)
-	du[1] = cos(u[2]) - u[1]
-	du[2] = sin(u[1] + u[2]) + u[2]
+    du[1] = cos(u[2]) - u[1]
+    du[2] = sin(u[1] + u[2]) + u[2]
 end
 explicitfun1(cache,sols) = nothing
 prob1 = NonlinearProblem(NonlinearFunction{true, SciMLBase.NoSpecialize}(f1), zeros(2), cache)
 sol1 = solve(prob1, NewtonRaphson())
 
 function f2(du,u,cache)
-	du[1] = 2u[2] + u[1] + 1.0
-	du[2] = u[3]^2 + u[2]
-	du[3] = u[1]^2 + u[3]
+    du[1] = 2u[2] + u[1] + 1.0
+    du[2] = u[3]^2 + u[2]
+    du[3] = u[1]^2 + u[3]
 end
 explicitfun2(cache,sols) = nothing
 prob2 = NonlinearProblem(NonlinearFunction{true, SciMLBase.NoSpecialize}(f2), zeros(3), cache)
 sol2 = solve(prob2, NewtonRaphson())
 
 function f3(du,u,cache)
-	du[1] = cache[1] + 2.0u[1] + 2.5u[2] + 1.5u[3]
-	du[2] = cache[2] + 4.0u[1] - 1.5u[2] + 1.5u[3]
-	du[3] = cache[3] + + u[1] - u[2] - u[3]
+    du[1] = cache[1] + 2.0u[1] + 2.5u[2] + 1.5u[3]
+    du[2] = cache[2] + 4.0u[1] - 1.5u[2] + 1.5u[3]
+    du[3] = cache[3] + + u[1] - u[2] - u[3]
 end
 prob3 = NonlinearProblem(NonlinearFunction{true, SciMLBase.NoSpecialize}(f3), zeros(3), cache)
 function explicitfun3(cache,sols)
-	cache[1] = sols[1][1] + sols[1][2] + sols[2][1] + sols[2][2] + sols[2][3]
-	cache[2] = sols[1][1] + sols[1][2] + sols[2][1] + 2.0sols[2][2] + sols[2][3]
-	cache[3] = sols[1][1] + 2.0sols[1][2] + 3.0sols[2][1] + 5.0sols[2][2] + 6.0sols[2][3]
+    cache[1] = sols[1][1] + sols[1][2] + sols[2][1] + sols[2][2] + sols[2][3]
+    cache[2] = sols[1][1] + sols[1][2] + sols[2][1] + 2.0sols[2][2] + sols[2][3]
+    cache[3] = sols[1][1] + 2.0sols[1][2] + 3.0sols[2][1] + 5.0sols[2][2] + 6.0sols[2][3]
 end
 explicitfun3(cache,[sol1,sol2])
 sol3 = solve(prob3, NewtonRaphson())
 manualscc = [sol1; sol2; sol3]
 
-sccprob = SciMLBase.SCCNonlinearProblem([prob1,prob2,prob3], SciMLBase.Void{Any}.([explicitfun1,explicitfun2,explicitfun3]))
+sccprob = SciMLBase.SCCNonlinearProblem(
+    [prob1,prob2,prob3],
+    SciMLBase.Void{Any}.([explicitfun1,explicitfun2,explicitfun3]))
 ```
 
 Note that this example aliases the parameters together for a memory-reduced representation.
@@ -484,9 +521,11 @@ Note that this example aliases the parameters together for a memory-reduced repr
 * `probs`: the collection of problems to solve
 * `explictfuns!`: the explicit functions for mutating the parameter set
 """
-mutable struct SCCNonlinearProblem{uType, iip, P, E, F <: NonlinearFunction{iip},
-    Par, Palias <: Union{Val{true}, Val{false}}} <:
-               AbstractNonlinearProblem{uType, iip}
+mutable struct SCCNonlinearProblem{
+        uType, iip, P, E, F <: NonlinearFunction{iip},
+        Par, Palias <: Union{Val{true}, Val{false}},
+    } <:
+    AbstractNonlinearProblem{uType, iip}
     probs::P
     explicitfuns!::E
     # NonlinearFunction with `f = Returns(nothing)`
@@ -494,30 +533,48 @@ mutable struct SCCNonlinearProblem{uType, iip, P, E, F <: NonlinearFunction{iip}
     p::Par
     parameters_alias::Palias
 
-    function SCCNonlinearProblem{P, E, F, Par}(probs::P, funs::E, f::F, pobj::Par,
-            alias::Palias) where {P, E, F <: NonlinearFunction, Par, Palias}
+    function SCCNonlinearProblem{P, E, F, Par}(
+            probs::P, funs::E, f::F, pobj::Par,
+            alias::Palias
+        ) where {P, E, F <: NonlinearFunction, Par, Palias}
         init = state_values(first(probs))
+        has_no_u0 = init === nothing
+        if has_no_u0
+            # In this case, all of `probs` are `LinearProblem`
+            @assert first(probs) isa LinearProblem
+            init = first(probs).A
+        end
         if ArrayInterface.ismutable(init)
             init = similar(init, 0)
         else
             init = StaticArraysCore.similar_type(init, StaticArraysCore.Size(0))()
         end
-        u0 = mapreduce(
-            state_values, vcat, probs; init = init)
-        uType = typeof(u0)
-        new{uType, false, P, E, F, Par, Palias}(probs, funs, f, pobj, alias)
+        if has_no_u0
+            uType = Nothing
+        else
+            u0 = mapreduce(
+                state_values, vcat, probs; init = init
+            )
+            uType = typeof(u0)
+        end
+        return new{uType, false, P, E, F, Par, Palias}(probs, funs, f, pobj, alias)
     end
 end
 
-function SCCNonlinearProblem(probs, explicitfuns!, parameter_object = nothing,
-        parameters_alias::Union{Bool, Val{true}, Val{false}} = Val(false); kwargs...)
+function SCCNonlinearProblem(
+        probs, explicitfuns!, parameter_object = nothing,
+        parameters_alias::Union{Bool, Val{true}, Val{false}} = Val(false); kwargs...
+    )
     f = NonlinearFunction{false}(Returns(nothing); kwargs...)
     if parameters_alias isa Bool
         parameters_alias = Val(parameters_alias)
     end
-    return SCCNonlinearProblem{typeof(probs), typeof(explicitfuns!),
-        typeof(f), typeof(parameter_object)}(
-        probs, explicitfuns!, f, parameter_object, parameters_alias)
+    return SCCNonlinearProblem{
+        typeof(probs), typeof(explicitfuns!),
+        typeof(f), typeof(parameter_object),
+    }(
+        probs, explicitfuns!, f, parameter_object, parameters_alias
+    )
 end
 
 function Base.getproperty(prob::SCCNonlinearProblem, name::Symbol)
@@ -530,10 +587,13 @@ function Base.getproperty(prob::SCCNonlinearProblem, name::Symbol)
 end
 
 function SymbolicIndexingInterface.symbolic_container(prob::SCCNonlinearProblem)
-    prob.f
+    return prob.f
 end
 function SymbolicIndexingInterface.parameter_values(prob::SCCNonlinearProblem)
-    prob.p
+    return prob.p
+end
+function SymbolicIndexingInterface.state_values(prob::SCCNonlinearProblem{Nothing})
+    return nothing
 end
 function SymbolicIndexingInterface.state_values(prob::SCCNonlinearProblem)
     init = state_values(first(prob.probs))
@@ -542,7 +602,7 @@ function SymbolicIndexingInterface.state_values(prob::SCCNonlinearProblem)
     else
         init = StaticArraysCore.similar_type(init, StaticArraysCore.Size(0))()
     end
-    mapreduce(state_values, vcat, prob.probs; init)
+    return mapreduce(state_values, vcat, prob.probs; init)
 end
 
 function SymbolicIndexingInterface.set_state!(prob::SCCNonlinearProblem, val, idx)
@@ -563,6 +623,7 @@ function SymbolicIndexingInterface.set_parameter!(prob::SCCNonlinearProblem, val
         is_parameter(scc, idx) || continue
         set_parameter!(scc, val, idx)
     end
+    return
 end
 
 @doc doc"""
@@ -586,8 +647,9 @@ struct NonlinearAliasSpecifier <: AbstractAliasSpecifier
     alias_u0::Union{Bool, Nothing}
 
     function NonlinearAliasSpecifier(;
-            alias_p = nothing, alias_f = nothing, alias_u0 = nothing, alias = nothing)
-        if isnothing(alias)
+            alias_p = nothing, alias_f = nothing, alias_u0 = nothing, alias = nothing
+        )
+        return if isnothing(alias)
             new(alias_p, alias_f, alias_u0)
         elseif alias
             new(true, true, true)
@@ -598,7 +660,7 @@ struct NonlinearAliasSpecifier <: AbstractAliasSpecifier
 end
 
 struct ImmutableNonlinearProblem{uType, iip, P, F, K, PT} <:
-       AbstractNonlinearProblem{uType, iip}
+    AbstractNonlinearProblem{uType, iip}
     f::F
     u0::uType
     p::P
@@ -607,15 +669,18 @@ struct ImmutableNonlinearProblem{uType, iip, P, F, K, PT} <:
 
     SciMLBase.@add_kwonly function ImmutableNonlinearProblem{iip}(
             f::AbstractNonlinearFunction{iip}, u0, p = NullParameters(),
-            problem_type = StandardNonlinearProblem(); kwargs...) where {iip}
+            problem_type = StandardNonlinearProblem(); kwargs...
+        ) where {iip}
         if haskey(kwargs, :p)
             error("`p` specified as a keyword argument `p = $(kwargs[:p])` to \
                    `NonlinearProblem`. This is not supported.")
         end
         SciMLBase.warn_paramtype(p)
         return new{
-            typeof(u0), iip, typeof(p), typeof(f), typeof(kwargs), typeof(problem_type)}(
-            f, u0, p, problem_type, kwargs)
+            typeof(u0), iip, typeof(p), typeof(f), typeof(kwargs), typeof(problem_type),
+        }(
+            f, u0, p, problem_type, kwargs
+        )
     end
 
     """
@@ -624,7 +689,8 @@ struct ImmutableNonlinearProblem{uType, iip, P, F, K, PT} <:
     This is determined automatically, but not inferred.
     """
     function ImmutableNonlinearProblem{iip}(
-            f, u0, p = NullParameters(); kwargs...) where {iip}
+            f, u0, p = NullParameters(); kwargs...
+        ) where {iip}
         return ImmutableNonlinearProblem{iip}(NonlinearFunction{iip}(f), u0, p; kwargs...)
     end
 end
@@ -633,7 +699,8 @@ end
 Define a nonlinear problem using an instance of [`AbstractNonlinearFunction`](@ref).
 """
 function ImmutableNonlinearProblem(
-        f::AbstractNonlinearFunction, u0, p = NullParameters(); kwargs...)
+        f::AbstractNonlinearFunction, u0, p = NullParameters(); kwargs...
+    )
     return ImmutableNonlinearProblem{SciMLBase.isinplace(f)}(f, u0, p; kwargs...)
 end
 
@@ -642,14 +709,16 @@ function ImmutableNonlinearProblem(f, u0, p = NullParameters(); kwargs...)
 end
 
 """
-Define a ImmutableNonlinearProblem problem from SteadyStateProblem.
+Define a `ImmutableNonlinearProblem` problem from `SteadyStateProblem`.
 """
 function ImmutableNonlinearProblem(prob::AbstractNonlinearProblem)
     return ImmutableNonlinearProblem{SciMLBase.isinplace(prob)}(prob.f, prob.u0, prob.p)
 end
 
 function Base.convert(
-        ::Type{ImmutableNonlinearProblem}, prob::T) where {T <: NonlinearProblem}
+        ::Type{ImmutableNonlinearProblem}, prob::T
+    ) where {T <: NonlinearProblem}
     return ImmutableNonlinearProblem{SciMLBase.isinplace(prob)}(
-        prob.f, prob.u0, prob.p, prob.problem_type; prob.kwargs...)
+        prob.f, prob.u0, prob.p, prob.problem_type; prob.kwargs...
+    )
 end

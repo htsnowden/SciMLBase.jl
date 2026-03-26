@@ -21,7 +21,7 @@ matrices / higher dimension tensors as well.
 Note that for the steady-state to be defined, we must have that `f` is autonomous,
 that is `f` is independent of `t`. But the form which matches the standard ODE
 solver should still be used. The steady state solvers interpret the `f` by
-fixing ``t = \infty``.
+fixing ``t = ∞``.
 
 ## Problem Type
 
@@ -70,7 +70,7 @@ The `SteadyStateSolution` type is different from the other DiffEq solutions beca
 it does not have temporal information.
 """
 struct SteadyStateProblem{uType, isinplace, P, F, K} <:
-       AbstractSteadyStateProblem{uType, isinplace}
+    AbstractSteadyStateProblem{uType, isinplace}
     """f: The function in the ODE."""
     f::F
     """The initial guess for the steady state."""
@@ -78,13 +78,17 @@ struct SteadyStateProblem{uType, isinplace, P, F, K} <:
     """Parameter values for the ODE function."""
     p::P
     kwargs::K
-    @add_kwonly function SteadyStateProblem{iip}(f::AbstractODEFunction{iip},
+    @add_kwonly function SteadyStateProblem{iip}(
+            f::AbstractODEFunction{iip},
             u0, p = NullParameters();
-            kwargs...) where {iip}
+            kwargs...
+        ) where {iip}
         _u0 = prepare_initial_state(u0)
         warn_paramtype(p)
-        new{typeof(_u0), isinplace(f), typeof(p), typeof(f), typeof(kwargs)}(f, _u0, p,
-            kwargs)
+        new{typeof(_u0), isinplace(f), typeof(p), typeof(f), typeof(kwargs)}(
+            f, _u0, p,
+            kwargs
+        )
     end
 
     """
@@ -95,7 +99,7 @@ struct SteadyStateProblem{uType, isinplace, P, F, K} <:
     This is determined automatically, but not inferred.
     """
     function SteadyStateProblem{iip}(f, u0, p = NullParameters()) where {iip}
-        SteadyStateProblem(ODEFunction{iip}(f), u0, p)
+        return SteadyStateProblem(ODEFunction{iip}(f), u0, p)
     end
 end
 
@@ -106,15 +110,15 @@ Define a steady state problem using an instance of
 [`AbstractODEFunction`](@ref AbstractODEFunction).
 """
 function SteadyStateProblem(f::AbstractODEFunction, u0, p = NullParameters(); kwargs...)
-    SteadyStateProblem{isinplace(f)}(f, u0, p; kwargs...)
+    return SteadyStateProblem{isinplace(f)}(f, u0, p; kwargs...)
 end
 
 function SteadyStateProblem(f, u0, p = NullParameters(); kwargs...)
-    SteadyStateProblem(ODEFunction(f), u0, p; kwargs...)
+    return SteadyStateProblem(ODEFunction(f), u0, p; kwargs...)
 end
 
 function ConstructionBase.constructorof(::Type{P}) where {P <: SteadyStateProblem}
-    function ctor(f, u0, p, kw)
+    return function ctor(f, u0, p, kw)
         if f isa AbstractODEFunction
             iip = isinplace(f)
         else
@@ -130,7 +134,7 @@ $(SIGNATURES)
 Define a steady state problem from a standard ODE problem.
 """
 function SteadyStateProblem(prob::AbstractODEProblem)
-    SteadyStateProblem{isinplace(prob)}(prob.f, prob.u0, prob.p; prob.kwargs...)
+    return SteadyStateProblem{isinplace(prob)}(prob.f, prob.u0, prob.p; prob.kwargs...)
 end
 
 SymbolicIndexingInterface.is_time_dependent(::SteadyStateProblem) = true
@@ -146,9 +150,9 @@ When a keyword argument is `nothing`, the default behaviour of the solver is use
 ### Keywords 
 * `alias_p::Union{Bool, Nothing}`
 * `alias_f::Union{Bool, Nothing}`
-* `alias_u0::Union{Bool, Nothing}`: alias the u0 array. Defaults to false .
-* `alias_du0::Union{Bool, Nothing}`: alias the du0 array for DAEs. Defaults to false.
-* `alias_tstops::Union{Bool, Nothing}`: alias the tstops array
+* `alias_u0::Union{Bool, Nothing}`: alias the `u0` array. Defaults to `false`.
+* `alias_du0::Union{Bool, Nothing}`: alias the `du0` array for DAEs. Defaults to `false`.
+* `alias_tstops::Union{Bool, Nothing}`: alias the `tstops` array
 * `alias::Union{Bool, Nothing}`: sets all fields of the `SteadStateAliasSpecifier` to `alias`
 
 """
@@ -161,8 +165,9 @@ struct SteadyStateAliasSpecifier <: AbstractAliasSpecifier
 
     function SteadyStateAliasSpecifier(;
             alias_p = nothing, alias_f = nothing, alias_u0 = nothing,
-            alias_du0 = nothing, alias_tstops = nothing, alias = nothing)
-        if alias == true
+            alias_du0 = nothing, alias_tstops = nothing, alias = nothing
+        )
+        return if alias == true
             new(true, true, true, true, true)
         elseif alias == false
             new(false, false, false, false, false)

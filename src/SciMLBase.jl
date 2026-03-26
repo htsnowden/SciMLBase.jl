@@ -1,6 +1,6 @@
 module SciMLBase
 if isdefined(Base, :Experimental) &&
-   isdefined(Base.Experimental, Symbol("@max_methods"))
+        isdefined(Base.Experimental, Symbol("@max_methods"))
     @eval Base.Experimental.@max_methods 1
 end
 using ConstructionBase
@@ -33,18 +33,22 @@ import Adapt: adapt_structure, adapt
 using Reexport
 using SciMLOperators
 using SciMLOperators:
-                      AbstractSciMLOperator,
-                      IdentityOperator, NullOperator,
-                      ScaledOperator, AddedOperator, ComposedOperator,
-                      InvertedOperator, InvertibleOperator, AbstractSciMLScalarOperator
+    AbstractSciMLOperator,
+    IdentityOperator, NullOperator,
+    ScaledOperator, AddedOperator, ComposedOperator,
+    InvertedOperator, InvertibleOperator, AbstractSciMLScalarOperator
 
 import SciMLOperators:
-                       DEFAULT_UPDATE_FUNC, update_coefficients, update_coefficients!,
-                       getops, isconstant, iscached, islinear, issquare,
-                       has_adjoint, has_expmv, has_expmv!, has_exp,
-                       has_mul, has_mul!, has_ldiv, has_ldiv!
+    DEFAULT_UPDATE_FUNC, update_coefficients, update_coefficients!,
+    getops, isconstant, iscached, islinear, issquare,
+    has_adjoint, has_expmv, has_expmv!, has_exp,
+    has_mul, has_mul!, has_ldiv, has_ldiv!
 
 @reexport using SciMLOperators
+
+using SciMLPublic: @public
+
+using SciMLLogging: @SciMLMessage
 
 function __solve end
 function __init end
@@ -110,11 +114,16 @@ Base for types which define nonlinear solve problems (`f(u)=0`).
 """
 abstract type AbstractNonlinearProblem{uType, isinplace} <: AbstractSciMLProblem end
 abstract type AbstractIntervalNonlinearProblem{uType, isinplace} <:
-              AbstractNonlinearProblem{uType,
-    isinplace} end
+AbstractNonlinearProblem{
+    uType,
+    isinplace,
+} end
 const AbstractSteadyStateProblem{
-    uType, isinplace} = AbstractNonlinearProblem{uType,
-    isinplace}
+    uType, isinplace,
+} = AbstractNonlinearProblem{
+    uType,
+    isinplace,
+}
 
 """
 $(TYPEDEF)
@@ -131,16 +140,24 @@ abstract type AbstractODEProblem{uType, tType, isinplace} <: AbstractDEProblem e
 """
 $(TYPEDEF)
 
+Base for types which define dynamical optimization problems.
+"""
+abstract type AbstractDynamicOptProblem{uType, tType, isinplace} <:
+AbstractODEProblem{uType, tType, isinplace} end
+
+"""
+$(TYPEDEF)
+
 Base for types which define discrete problems.
 """
 abstract type AbstractDiscreteProblem{uType, tType, isinplace} <:
-              AbstractODEProblem{uType, tType, isinplace} end
+AbstractODEProblem{uType, tType, isinplace} end
 
 """
 $(TYPEDEF)
 """
 abstract type AbstractAnalyticalProblem{uType, tType, isinplace} <:
-              AbstractODEProblem{uType, tType, isinplace} end
+AbstractODEProblem{uType, tType, isinplace} end
 
 """
 $(TYPEDEF)
@@ -155,7 +172,7 @@ $(TYPEDEF)
 Base for types which define SDE problems.
 """
 abstract type AbstractSDEProblem{uType, tType, isinplace, ND} <:
-              AbstractRODEProblem{uType, tType, isinplace, ND} end
+AbstractRODEProblem{uType, tType, isinplace, ND} end
 
 """
 $(TYPEDEF)
@@ -175,13 +192,13 @@ abstract type AbstractDDEProblem{uType, tType, lType, isinplace} <: AbstractDEPr
 $(TYPEDEF)
 """
 abstract type AbstractConstantLagDDEProblem{uType, tType, lType, isinplace} <:
-              AbstractDDEProblem{uType, tType, lType, isinplace} end
+AbstractDDEProblem{uType, tType, lType, isinplace} end
 
 """
 $(TYPEDEF)
 """
 abstract type AbstractSecondOrderODEProblem{uType, tType, isinplace} <:
-              AbstractODEProblem{uType, tType, isinplace} end
+AbstractODEProblem{uType, tType, isinplace} end
 
 """
 $(TYPEDEF)
@@ -189,7 +206,7 @@ $(TYPEDEF)
 Base for types which define BVP problems.
 """
 abstract type AbstractBVProblem{uType, tType, isinplace, nlls} <:
-              AbstractODEProblem{uType, tType, isinplace} end
+AbstractODEProblem{uType, tType, isinplace} end
 
 """
 $(TYPEDEF)
@@ -209,7 +226,7 @@ abstract type AbstractSDDEProblem{uType, tType, lType, isinplace, ND} <: Abstrac
 $(TYPEDEF)
 """
 abstract type AbstractConstantLagSDDEProblem{uType, tType, lType, isinplace, ND} <:
-              AbstractSDDEProblem{uType, tType, lType, isinplace, ND} end
+AbstractSDDEProblem{uType, tType, lType, isinplace, ND} end
 
 """
 $(TYPEDEF)
@@ -313,31 +330,31 @@ abstract type AbstractSensitivityAlgorithm{CS, AD, FDT} <: AbstractSciMLAlgorith
 $(TYPEDEF)
 """
 abstract type AbstractOverloadingSensitivityAlgorithm{CS, AD, FDT} <:
-              AbstractSensitivityAlgorithm{CS, AD, FDT} end
+AbstractSensitivityAlgorithm{CS, AD, FDT} end
 
 """
 $(TYPEDEF)
 """
 abstract type AbstractForwardSensitivityAlgorithm{CS, AD, FDT} <:
-              AbstractOverloadingSensitivityAlgorithm{CS, AD, FDT} end
+AbstractOverloadingSensitivityAlgorithm{CS, AD, FDT} end
 
 """
 $(TYPEDEF)
 """
 abstract type AbstractAdjointSensitivityAlgorithm{CS, AD, FDT} <:
-              AbstractOverloadingSensitivityAlgorithm{CS, AD, FDT} end
+AbstractOverloadingSensitivityAlgorithm{CS, AD, FDT} end
 
 """
 $(TYPEDEF)
 """
 abstract type AbstractSecondOrderSensitivityAlgorithm{CS, AD, FDT} <:
-              AbstractOverloadingSensitivityAlgorithm{CS, AD, FDT} end
+AbstractOverloadingSensitivityAlgorithm{CS, AD, FDT} end
 
 """
 $(TYPEDEF)
 """
 abstract type AbstractShadowingSensitivityAlgorithm{CS, AD, FDT} <:
-              AbstractOverloadingSensitivityAlgorithm{CS, AD, FDT} end
+AbstractOverloadingSensitivityAlgorithm{CS, AD, FDT} end
 
 """
 $(TYPEDEF)
@@ -351,9 +368,10 @@ An initialization algorithm that completely skips the initialization phase. The 
 will use the provided initial conditions directly without any consistency checks or
 modifications.
 
-⚠️ **Warning**: Using `NoInit()` with inconsistent initial conditions will likely cause
-solver failures or incorrect results. Only use this when you are absolutely certain
-your initial conditions satisfy all DAE constraints.
+!!! warning
+    Using `NoInit()` with inconsistent initial conditions will likely cause
+    solver failures or incorrect results. Only use this when you are absolutely certain
+    your initial conditions satisfy all DAE constraints.
 
 This is useful when:
 - You know your initial conditions are already perfectly consistent
@@ -425,7 +443,7 @@ struct OverrideInit{T1, T2, F} <: DAEInitializationAlgorithm
 end
 
 function OverrideInit(; abstol = nothing, reltol = nothing, nlsolve = nothing)
-    OverrideInit(abstol, reltol, nlsolve)
+    return OverrideInit(abstol, reltol, nlsolve)
 end
 OverrideInit(abstol) = OverrideInit(; abstol = abstol, nlsolve = nothing)
 
@@ -496,7 +514,7 @@ abstract type DEIntegrator{Alg, IIP, U, T} end
 $(TYPEDEF)
 """
 abstract type AbstractSteadyStateIntegrator{Alg, IIP, U} <:
-              DEIntegrator{Alg, IIP, U, Nothing} end
+DEIntegrator{Alg, IIP, U, Nothing} end
 
 """
 $(TYPEDEF)
@@ -507,7 +525,7 @@ abstract type AbstractODEIntegrator{Alg, IIP, U, T} <: DEIntegrator{Alg, IIP, U,
 $(TYPEDEF)
 """
 abstract type AbstractSecondOrderODEIntegrator{Alg, IIP, U, T} <:
-              DEIntegrator{Alg, IIP, U, T} end
+DEIntegrator{Alg, IIP, U, T} end
 
 """
 $(TYPEDEF)
@@ -560,10 +578,12 @@ Union of all base solution types.
 
 Uses a Union so that solution types can be `<: AbstractArray`
 """
-const AbstractSciMLSolution = Union{AbstractTimeseriesSolution,
+const AbstractSciMLSolution = Union{
+    AbstractTimeseriesSolution,
     AbstractNoTimeSolution,
     AbstractEnsembleSolution,
-    AbstractNoiseProcess}
+    AbstractNoiseProcess,
+}
 
 """
 $(TYPEDEF)
@@ -620,22 +640,26 @@ abstract type AbstractDAESolution{T, N, S} <: AbstractODESolution{T, N, S} end
 $(TYPEDEF)
 """
 abstract type AbstractPDETimeSeriesSolution{T, N, S, D} <:
-              AbstractTimeseriesSolution{T, N, S} end
+AbstractTimeseriesSolution{T, N, S} end
 
 """
 $(TYPEDEF)
 """
 abstract type AbstractPDENoTimeSolution{T, N, S, D} <:
-              AbstractNoTimeSolution{T, N} end
+AbstractNoTimeSolution{T, N} end
 
 """
 $(TYPEDEF)
 """
-const AbstractPDESolution{T,
+const AbstractPDESolution{
+    T,
     N,
     S,
-    D} = Union{AbstractPDETimeSeriesSolution{T, N, S, D},
-    AbstractPDENoTimeSolution{T, N, S, D}}
+    D,
+} = Union{
+    AbstractPDETimeSeriesSolution{T, N, S, D},
+    AbstractPDENoTimeSolution{T, N, S, D},
+}
 
 """
 $(TYPEDEF)
@@ -657,7 +681,7 @@ $(TYPEDEF)
 Base for types defining differential equation functions.
 """
 abstract type AbstractDiffEqFunction{iip} <:
-              AbstractSciMLFunction{iip} end
+AbstractSciMLFunction{iip} end
 
 """
 $(TYPEDEF)
@@ -665,7 +689,7 @@ $(TYPEDEF)
 Base for types defining integrand functions.
 """
 abstract type AbstractIntegralFunction{iip} <:
-              AbstractSciMLFunction{iip} end
+AbstractSciMLFunction{iip} end
 
 """
 $(TYPEDEF)
@@ -747,29 +771,35 @@ include("debug.jl")
 unwrapped_f(f) = f
 unwrapped_f(f::Void) = unwrapped_f(f.f)
 function unwrapped_f(f::FunctionWrappersWrappers.FunctionWrappersWrapper)
-    unwrapped_f(f.fw[1].obj[])
+    return unwrapped_f(f.fw[1].obj[])
 end
 
-function specialization(::Union{ODEFunction{iip, specialize},
-        SDEFunction{iip, specialize}, DDEFunction{iip, specialize},
-        SDDEFunction{iip, specialize},
-        DAEFunction{iip, specialize},
-        DynamicalODEFunction{iip, specialize},
-        SplitFunction{iip, specialize},
-        DynamicalSDEFunction{iip, specialize},
-        SplitSDEFunction{iip, specialize},
-        DynamicalDDEFunction{iip, specialize},
-        DiscreteFunction{iip, specialize},
-        ImplicitDiscreteFunction{iip, specialize},
-        RODEFunction{iip, specialize},
-        NonlinearFunction{iip, specialize},
-        OptimizationFunction{iip, specialize},
-        BVPFunction{iip, specialize},
-        DynamicalBVPFunction{iip, specialize},
-        IntegralFunction{iip, specialize},
-        BatchIntegralFunction{iip, specialize}}) where {iip,
-        specialize}
-    specialize
+function specialization(
+        ::Union{
+            ODEFunction{iip, specialize},
+            SDEFunction{iip, specialize}, DDEFunction{iip, specialize},
+            SDDEFunction{iip, specialize},
+            DAEFunction{iip, specialize},
+            DynamicalODEFunction{iip, specialize},
+            SplitFunction{iip, specialize},
+            DynamicalSDEFunction{iip, specialize},
+            SplitSDEFunction{iip, specialize},
+            DynamicalDDEFunction{iip, specialize},
+            DiscreteFunction{iip, specialize},
+            ImplicitDiscreteFunction{iip, specialize},
+            RODEFunction{iip, specialize},
+            NonlinearFunction{iip, specialize},
+            OptimizationFunction{iip, specialize},
+            BVPFunction{iip, specialize},
+            DynamicalBVPFunction{iip, specialize},
+            IntegralFunction{iip, specialize},
+            BatchIntegralFunction{iip, specialize},
+        }
+    ) where {
+        iip,
+        specialize,
+    }
+    return specialize
 end
 
 specialization(f::AbstractSciMLFunction) = FullSpecialize
@@ -834,6 +864,7 @@ include("deprecated.jl")
 import PrecompileTools
 
 PrecompileTools.@compile_workload begin
+    # ODE test functions
     function lorenz(du, u, p, t)
         du[1] = 10.0(u[2] - u[1])
         du[2] = u[1] * (28.0 - u[3]) - u[2]
@@ -844,10 +875,113 @@ PrecompileTools.@compile_workload begin
         [10.0(u[2] - u[1]), u[1] * (28.0 - u[3]) - u[2], u[1] * u[2] - (8 / 3) * u[3]]
     end
 
-    ODEProblem(lorenz, [1.0; 0.0; 0.0], (0.0, 1.0))
-    ODEProblem(lorenz, [1.0; 0.0; 0.0], (0.0, 1.0), Float64[])
-    ODEProblem(lorenz_oop, [1.0; 0.0; 0.0], (0.0, 1.0))
-    ODEProblem(lorenz_oop, [1.0; 0.0; 0.0], (0.0, 1.0), Float64[])
+    u0 = [1.0, 0.0, 0.0]
+    tspan = (0.0, 1.0)
+
+    # ODEProblem (IIP and OOP)
+    prob_ode_iip = ODEProblem(lorenz, u0, tspan)
+    ODEProblem(lorenz, u0, tspan, Float64[])
+    prob_ode_oop = ODEProblem(lorenz_oop, u0, tspan)
+    ODEProblem(lorenz_oop, u0, tspan, Float64[])
+
+    # NonlinearProblem (IIP and OOP)
+    nl_iip(res, u, p) = (res[1] = u[1]^2 - 2.0; nothing)
+    nl_oop(u, p) = [u[1]^2 - 2.0]
+    prob_nl_iip = NonlinearProblem(nl_iip, [1.0], nothing)
+    prob_nl_oop = NonlinearProblem(nl_oop, [1.0], nothing)
+    NonlinearProblem(nl_iip, [1.0])
+    NonlinearProblem(nl_oop, [1.0])
+
+    # OptimizationProblem
+    opt_f = OptimizationFunction((x, p) -> sum(abs2, x))
+    prob_opt = OptimizationProblem(opt_f, [1.0, 2.0], nothing)
+    OptimizationProblem((x, p) -> sum(abs2, x), [1.0, 2.0])
+
+    # IntegralProblem
+    int_f = (x, p) -> x^2
+    prob_int = IntegralProblem(int_f, (0.0, 1.0), nothing)
+    IntegralProblem(int_f, (0.0, 1.0))
+
+    # LinearProblem
+    A = [1.0 2.0; 3.0 4.0]
+    b = [1.0, 2.0]
+    prob_lin = LinearProblem(A, b)
+    LinearProblem(A, b, nothing)
+
+    # SDEProblem
+    g_iip(du, u, p, t) = (du .= 0.1; nothing)
+    g_oop(u, p, t) = fill(0.1, length(u))
+    prob_sde = SDEProblem(lorenz, g_iip, u0, tspan)
+    SDEProblem(lorenz_oop, g_oop, u0, tspan)
+
+    # DAEProblem
+    dae_f(res, du, u, p, t) = (res[1] = du[1] - u[1]; nothing)
+    DAEProblem(dae_f, [0.0], [1.0], (0.0, 1.0))
+
+    # DDEProblem
+    dde_f(du, u, h, p, t) = (du[1] = h(p, t - 0.1)[1]; nothing)
+    h_func(p, t) = [1.0]
+    DDEProblem(dde_f, [1.0], h_func, (0.0, 1.0))
+
+    # SteadyStateProblem
+    SteadyStateProblem(prob_ode_iip)
+    SteadyStateProblem(prob_ode_oop)
+
+    # DiscreteProblem
+    discrete_f(du, u, p, t) = (du[1] = u[1] * 2; nothing)
+    DiscreteProblem(discrete_f, [1.0], (0, 10))
+
+    # remake for common problem types
+    remake(prob_ode_iip, u0 = [2.0, 0.0, 0.0])
+    remake(prob_ode_oop, u0 = [2.0, 0.0, 0.0])
+    remake(prob_nl_iip, u0 = [2.0])
+    remake(prob_nl_oop, u0 = [2.0])
+    remake(prob_opt, u0 = [2.0, 3.0])
+    remake(prob_lin, b = [2.0, 3.0])
+    remake(prob_sde, u0 = [2.0, 0.0, 0.0])
+
+    # RODEProblem
+    rode_f(du, u, p, t, W) = (du .= u .* W; nothing)
+    RODEProblem(rode_f, u0, tspan)
+
+    # BVProblem
+    bvp_f(du, u, p, t) = (du[1] = u[2]; du[2] = -u[1]; nothing)
+    bvp_bc(res, u, p, t) = (res[1] = u[1][1] - 1.0; res[2] = u[2][1]; nothing)
+    BVProblem(bvp_f, bvp_bc, [1.0, 0.0], (0.0, 1.0))
+
+    # SecondOrderODEProblem
+    so_f(ddu, du, u, p, t) = (ddu .= -u; nothing)
+    SecondOrderODEProblem(so_f, [0.0], [1.0], (0.0, 1.0))
+
+    # SplitODEProblem
+    split_f1(du, u, p, t) = (du .= u; nothing)
+    split_f2(du, u, p, t) = (du .= -u; nothing)
+    SplitODEProblem(SplitFunction(split_f1, split_f2), [1.0], (0.0, 1.0))
+
+    # ImplicitDiscreteProblem
+    impl_f(res, u_next, u, p, t) = (res .= u_next .- 2 .* u; nothing)
+    ImplicitDiscreteProblem(impl_f, [1.0], (0, 10))
+
+    # NonlinearLeastSquaresProblem
+    nllsq_f(u, p) = [u[1]^2 - 1.0]
+    NonlinearLeastSquaresProblem(nllsq_f, [1.5])
+
+    # IntervalNonlinearProblem
+    interval_f(u, p) = u^2 - 2
+    IntervalNonlinearProblem(interval_f, (0.0, 2.0))
+
+    # Callbacks
+    cb_condition(u, t, integrator) = true
+    cb_affect!(integrator) = nothing
+    DiscreteCallback(cb_condition, cb_affect!)
+
+    ccb_condition(u, t, integrator) = t - 0.5
+    ccb_affect!(integrator) = nothing
+    ContinuousCallback(ccb_condition, ccb_affect!)
+
+    cb = DiscreteCallback(cb_condition, cb_affect!)
+    ccb = ContinuousCallback(ccb_condition, ccb_affect!)
+    CallbackSet(cb, ccb)
 end
 
 function discretize end
@@ -870,7 +1004,7 @@ export isinplace
 export solve, solve!, init, discretize, symbolic_discretize
 
 export LinearProblem, IntervalNonlinearProblem,
-       IntegralProblem, SampledIntegralProblem, OptimizationProblem
+    IntegralProblem, SampledIntegralProblem, OptimizationProblem
 
 export NonlinearProblem, SCCNonlinearProblem, NonlinearLeastSquaresProblem
 
@@ -879,15 +1013,15 @@ export SteadyStateProblem, SteadyStateSolution
 export NoiseProblem
 export ODEProblem, ODESolution
 export DynamicalODEFunction,
-       DynamicalODEProblem,
-       SecondOrderODEProblem, SplitFunction, SplitODEProblem
+    DynamicalODEProblem,
+    SecondOrderODEProblem, SplitFunction, SplitODEProblem
 export SplitSDEProblem
 export DynamicalSDEFunction, DynamicalSDEProblem
 export RODEProblem, RODESolution, SDEProblem
 export DAEProblem, DAESolution
 export DDEProblem
 export DynamicalDDEFunction, DynamicalDDEProblem,
-       SecondOrderDDEProblem
+    SecondOrderDDEProblem
 export SDDEProblem
 export PDEProblem
 export IncrementingODEProblem
@@ -897,10 +1031,11 @@ export BVProblem, TwoPointBVProblem, SecondOrderBVProblem, TwoPointSecondOrderBV
 export remake
 
 export ODEFunction, DiscreteFunction, ImplicitDiscreteFunction, SplitFunction, DAEFunction,
-       DDEFunction, SDEFunction, SplitSDEFunction, RODEFunction, SDDEFunction,
-       IncrementingODEFunction, NonlinearFunction, HomotopyNonlinearFunction,
-       IntervalNonlinearFunction, BVPFunction,
-       DynamicalBVPFunction, IntegralFunction, BatchIntegralFunction, ODEInputFunction
+    DDEFunction, SDEFunction, SplitSDEFunction, RODEFunction, SDDEFunction,
+    IncrementingODEFunction, NonlinearFunction, HomotopyNonlinearFunction,
+    IntervalNonlinearFunction, BVPFunction,
+    TwoPointBVPFunction, TwoPointDynamicalBVPFunction,
+    DynamicalBVPFunction, IntegralFunction, BatchIntegralFunction, ODEInputFunction
 
 export OptimizationFunction, MultiObjectiveOptimizationFunction
 
@@ -913,21 +1048,26 @@ export EnsembleAnalysis, EnsembleSummary
 export tuples, intervals, TimeChoiceIterator
 
 export step!, deleteat!, addat!, get_tmp_cache,
-       full_cache, user_cache, u_cache, du_cache,
-       rand_cache, ratenoise_cache,
-       resize_non_user_cache!, deleteat_non_user_cache!, addat_non_user_cache!,
-       terminate!,
-       add_tstop!, has_tstop, first_tstop, pop_tstop!,
-       add_saveat!, set_abstol!,
-       set_reltol!, get_du, get_du!, get_dt, get_proposed_dt, set_proposed_dt!,
-       u_modified!, savevalues!, reinit!, auto_dt_reset!, set_t!,
-       set_u!, check_error, change_t_via_interpolation!, addsteps!,
-       isdiscrete, reeval_internals_due_to_modification!
+    full_cache, user_cache, u_cache, du_cache,
+    rand_cache, ratenoise_cache,
+    resize_non_user_cache!, deleteat_non_user_cache!, addat_non_user_cache!,
+    terminate!,
+    add_tstop!, has_tstop, first_tstop, pop_tstop!,
+    add_saveat!, set_abstol!,
+    set_reltol!, get_du, get_du!, get_dt, get_proposed_dt, set_proposed_dt!,
+    u_modified!, savevalues!, reinit!, auto_dt_reset!, set_t!,
+    set_u!, check_error, change_t_via_interpolation!, addsteps!,
+    isdiscrete, reeval_internals_due_to_modification!,
+    has_rng, get_rng, set_rng!, supports_solve_rng
 
 export ContinuousCallback, DiscreteCallback, CallbackSet, VectorContinuousCallback
 
 export Clocks, TimeDomain, is_discrete_time_domain, isclock, issolverstepclock, iscontinuous
 
 export ODEAliasSpecifier, LinearAliasSpecifier
+
+# Public traits
+
+@public has_init, has_step, successful_retcode
 
 end

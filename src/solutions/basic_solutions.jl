@@ -1,7 +1,7 @@
 """
 $(TYPEDEF)
 
-Representation of the solution to an linear system Ax=b defined by a LinearProblem
+Representation of the solution to an linear system `Ax=b` defined by a `LinearProblem`
 
 ## Fields
 
@@ -17,7 +17,7 @@ Representation of the solution to an linear system Ax=b defined by a LinearProbl
   - `cache`: the `LinearCache` object containing the solver's internal cached variables. This
     is given to allow continuation of solver usage, for example, solving `Ax=b` with the same
     `A` and a new `b` without refactorizing `A`. See the caching interface tutorial for details
-    on how to use the `cache` effectively: <http://docs.sciml.ai/LinearSolve/stable/tutorials/caching_interface>
+    on how to use the `cache` effectively: <https://docs.sciml.ai/LinearSolve/stable/tutorials/caching_interface>
   - `stats`: statistics of the solver, such as the number of function evaluations required.
 """
 struct LinearSolution{T, N, uType, R, A, C, S} <: AbstractLinearSolution{T, N}
@@ -30,25 +30,31 @@ struct LinearSolution{T, N, uType, R, A, C, S} <: AbstractLinearSolution{T, N}
     stats::S
 end
 
-function build_linear_solution(alg, u, resid, cache;
+function build_linear_solution(
+        alg, u, resid, cache;
         retcode = ReturnCode.Default,
-        iters = 0, stats = nothing)
+        iters = 0, stats = nothing
+    )
     T = eltype(eltype(u))
     N = length((size(u)...,))
-    LinearSolution{T, N, typeof(u), typeof(resid), typeof(alg), typeof(cache),
-        typeof(stats)}(u,
+    return LinearSolution{
+        T, N, typeof(u), typeof(resid), typeof(alg), typeof(cache),
+        typeof(stats),
+    }(
+        u,
         resid,
         alg,
         retcode,
         iters,
         cache,
-        stats)
+        stats
+    )
 end
 
 """
 $(TYPEDEF)
 
-Representation of the solution to an quadrature integral_lb^ub f(x) dx defined by a IntegralProblem
+Representation of the solution to an quadrature integral_lb^ub f(x) dx defined by a `IntegralProblem`
 
 ## Fields
 
@@ -74,25 +80,30 @@ end
 struct QuadratureSolution end
 @deprecate QuadratureSolution(args...; kwargs...) IntegralSolution(args...; kwargs...)
 
-function build_solution(prob::AbstractIntegralProblem,
+function build_solution(
+        prob::AbstractIntegralProblem,
         alg, u, resid; chi = nothing,
-        retcode = ReturnCode.Default, stats = nothing, kwargs...)
+        retcode = ReturnCode.Default, stats = nothing, kwargs...
+    )
     T = eltype(eltype(u))
     N = length((size(u)...,))
 
-    IntegralSolution{
+    return IntegralSolution{
         T, N, typeof(u), typeof(resid), typeof(prob), typeof(alg), typeof(chi),
-        typeof(stats)}(u,
+        typeof(stats),
+    }(
+        u,
         resid,
         prob,
         alg,
         retcode,
         chi,
-        stats)
+        stats
+    )
 end
 
 function wrap_sol(sol)
-    if hasproperty(sol, :prob) && hasproperty(sol.prob, :problem_type)
+    return if hasproperty(sol, :prob) && hasproperty(sol.prob, :problem_type)
         wrap_sol(sol, sol.prob.problem_type)
     else
         sol

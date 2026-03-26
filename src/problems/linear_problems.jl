@@ -9,26 +9,18 @@ use by ModelingToolkit.jl.
 $(TYPEDFIELDS)
 """
 struct SymbolicLinearInterface{F1, F2, S, O, M}
-    """
-    A function which takes `A` and the parameter object `p` and updates `A` in-place.
-    """
+    # the docstrings cannot start with a newline because otherwise the docs
+    # builder fragments the list of fields into single-item lists (in TYPEDFIELDS)
+    """A function which takes `A` and the parameter object `p` and updates `A` in-place."""
     update_A!::F1
-    """
-    A function which takes `b` and the parameter object `p` and updates `b` in-place.
-    """
+    """A function which takes `b` and the parameter object `p` and updates `b` in-place."""
     update_b!::F2
-    """
-    The symbolic backend for the `LinearProblem`.
-    """
+    """The symbolic backend for the `LinearProblem`."""
     sys::S
-    """
-    A function which when given a symbolic expression returns a function `(u, p)`
-    that computes the expression.
-    """
+    """A function which when given a symbolic expression returns a function `(u, p)`
+    that computes the expression."""
     observed::O
-    """
-    Arbitrary metadata useful for the symbolic backend.
-    """
+    """Arbitrary metadata useful for the symbolic backend."""
     metadata::M
 end
 
@@ -38,7 +30,7 @@ has_sys(::SymbolicLinearInterface) = true
 SymbolicIndexingInterface.symbolic_container(sli::SymbolicLinearInterface) = sli.sys
 
 function SymbolicIndexingInterface.observed(fn::SymbolicLinearInterface, sym)
-    if fn.observed !== nothing
+    return if fn.observed !== nothing
         fn.observed(sym)
     elseif fn.sys !== nothing
         SymbolicIndexingInterface.observed(fn.sys, sym)
@@ -54,7 +46,7 @@ Documentation Page: <https://docs.sciml.ai/LinearSolve/stable/basics/LinearProbl
 
 ## Mathematical Specification of a Linear Problem
 
-### Concrete LinearProblem
+### Concrete `LinearProblem`
 
 To define a `LinearProblem`, you simply need to give the `AbstractMatrix` ``A``
 and an `AbstractVector` ``b`` which defines the linear system:
@@ -104,25 +96,29 @@ parameters. Any extra keyword arguments are passed on to the solvers.
 * `kwargs`: The keyword arguments passed on to the solvers.
 """
 struct LinearProblem{
-    uType, isinplace, F, bType, P, I <: Union{SymbolicLinearInterface, Nothing}, K} <:
-       AbstractLinearProblem{bType, isinplace}
+        uType, isinplace, F, bType, P, I <: Union{SymbolicLinearInterface, Nothing}, K,
+    } <:
+    AbstractLinearProblem{bType, isinplace}
     A::F
     b::bType
     u0::uType
     p::P
     f::I
     kwargs::K
-    @add_kwonly function LinearProblem{iip}(A, b, p = NullParameters(); u0 = nothing,
-            f = nothing, kwargs...) where {iip}
+    @add_kwonly function LinearProblem{iip}(
+            A, b, p = NullParameters(); u0 = nothing,
+            f = nothing, kwargs...
+        ) where {iip}
         warn_paramtype(p)
         new{typeof(u0), iip, typeof(A), typeof(b), typeof(p), typeof(f), typeof(kwargs)}(
             A, b, u0, p,
-            f, kwargs)
+            f, kwargs
+        )
     end
 end
 
 function LinearProblem(A, b, args...; kwargs...)
-    if A isa AbstractArray
+    return if A isa AbstractArray
         LinearProblem{true}(A, b, args...; kwargs...)
     elseif A isa Number
         LinearProblem{false}(A, b, args...; kwargs...)
@@ -137,10 +133,11 @@ SymbolicIndexingInterface.parameter_values(prob::LinearProblem) = prob.p
 SymbolicIndexingInterface.is_time_dependent(::LinearProblem) = false
 function SymbolicIndexingInterface.set_parameter!(
         valp::LinearProblem{A, B, C, D, E, <:SymbolicLinearInterface},
-        val, idx) where {A, B, C, D, E}
+        val, idx
+    ) where {A, B, C, D, E}
     set_parameter!(parameter_values(valp), val, idx)
     valp.f.update_A!(valp.A, valp.p)
-    valp.f.update_b!(valp.b, valp.p)
+    return valp.f.update_b!(valp.b, valp.p)
 end
 
 @doc doc"""
@@ -165,7 +162,7 @@ struct LinearAliasSpecifier <: AbstractAliasSpecifier
     alias_b::Union{Bool, Nothing}
 
     function LinearAliasSpecifier(; alias_A = nothing, alias_b = nothing, alias = nothing)
-        if alias == true
+        return if alias == true
             new(true, true)
         elseif alias == false
             new(false, false)
